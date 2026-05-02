@@ -1,0 +1,181 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+* Copyright (c) 2021 Rockchip Electronics Co., Ltd.
+*
+*/
+
+/dts-v1/;
+
+#include "rk3588-evb7-lp4.dtsi"
+#include "rk3588-linux.dtsi"
+#include <dt-bindings/display/rockchip_vop.h>
+
+/ {
+	vcc3v3_lcd_dsi0: vcc3v3-lcd-dsi0 {
+		status = "okay";
+		compatible = "regulator-fixed";
+		enable-active-high;
+		gpio = <&gpio4 RK_PA4 GPIO_ACTIVE_HIGH>;
+		pinctrl-0 = <&lcd_pwr_dsi0>;
+		pinctrl-names = "default";
+		regulator-boot-on;
+		regulator-name = "vcc3v3_lcd_dsi0";
+		vin-supply = <&vcc_3v3_s3>;  //PLDO_REG2
+	};
+};
+
+&pinctrl {
+	lcd0_dsi0 {
+		lcd_pwr_dsi0: lcd-pwr-dsi0 {
+			rockchip,pins = <4 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+		lcd_rst_dsi0: lcd-rst-dsi0 {
+			rockchip,pins = <3 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+	// 天马触摸屏
+	touch {
+		ts_pins: ts-pins {
+			rockchip,pins = 
+				<3 RK_PC0 RK_FUNC_GPIO &pcfg_pull_up>,
+				<3 RK_PC1 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+};
+
+&dsi0 {
+	status = "okay";  // mipi
+};
+
+&dsi0_in_vp2 {
+	status = "okay";  // mipi
+};
+
+&dsi0_in_vp3 {
+	status = "disabled";  // mipi
+};
+
+&route_dsi0 {
+	connect = <&vp2_out_dsi0>;
+	status = "okay";  // mipi
+	logo,mode = "center";
+	charge_logo,mode = "center";
+};
+
+/*
+ * mipi_dcphy1 needs to be enabled
+ * when dsi1 is enabled
+ */
+&mipi_dcphy0 {
+	status = "okay";
+};
+
+// rk3588-evb.dtsi
+&dsi0_panel {
+	status = "okay";  // mipi
+	/delete-property/ reset-gpios;
+	compatible = "simple-panel-dsi";
+	pinctrl-names = "default";
+	pinctrl-0 = <&lcd_rst_dsi0>;
+	reset-gpios = <&gpio3 RK_PB2 GPIO_ACTIVE_LOW>;
+		
+	power-supply = <&vcc3v3_lcd_dsi0>;
+	vccio-supply = <&vcc_1v8_s0>;
+	
+	prepare-delay-ms = <20>;
+	reset-delay-ms = <120>;
+	init-delay-ms = <100>;
+	enable-delay-ms = <35>;
+	disable-delay-ms = <50>;
+	unprepare-delay-ms = <50>;
+
+	width-mm = <74>;
+	height-mm = <133>;
+
+	dsi,flags = <(MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST |
+		MIPI_DSI_MODE_LPM | MIPI_DSI_MODE_NO_EOT_PACKET)>;
+	dsi,format = <MIPI_DSI_FMT_RGB888>;
+	dsi,lanes = <4>;
+
+	panel-init-sequence = [
+		39 00 03 9F A5 A5
+		05 78 01 11  
+		15 00 02 55 10
+		39 00 03 F0 5A 5A
+		15 00 02 73 94 
+		39 00 3D EA 00 73 11 1B 23 2A 40 59 70 6E A1 86 92 9F AB B8 4D 59 65 7F 00 73 11 1B 23 2A 40 59 70 6E A1 86 92 9F AB B8 4D 59 65 7F 00 73 11 1B 23 2A 40 59 70 6E A1 86 92 9F AB B8 4D 59 65 7F
+		39 00 3D EB 00 73 11 1B 23 2A 40 59 70 6E A1 86 92 9F AB B8 4D 59 65 7F 00 73 11 1B 23 2A 40 59 70 6E A1 86 92 9F AB B8 4D 59 65 7F 00 73 11 1B 23 2A 40 59 70 6E A1 86 92 9F AB B8 4D 59 65 7F
+		39 00 03 F0 A5 A5
+		05 09 01 29
+		39 00 03 9F 5A 5A
+	];
+
+	panel-exit-sequence = [
+		39 00 03 9F A5 A5
+		05 00 01 28
+		05 50 02 10 00
+		39 00 03 F0 5A 5A
+		15 00 02 73 90 
+		39 00 03 F0 A5 A5
+		05 00 01 24
+		39 00 03 9F 5A 5A
+	];
+
+	// 下面的简略版也可以工作
+	// panel-init-sequence = [
+	// 	05 78 01 11
+	// 	05 0A 01 29
+	// ];
+
+	// panel-exit-sequence = [
+	// 	05 10 01 28
+	// 	05 78 01 10
+	// ];
+	display-timings {
+		native-mode = <&timing0>;
+		timing0: timing0 {
+			clock-frequency = <154000000>;
+			hactive = <1080>;
+			vactive = <2160>;
+
+			vback-porch = <6>;
+			vfront-porch = <8>;
+
+			hback-porch = <4>;
+			hfront-porch = <92>;
+
+			hsync-len = <4>;
+			vsync-len = <2>;
+
+			vsync-active = <0>;
+			hsync-active = <0>;
+			de-active = <1>;
+			pixelclk-active = <0>;
+		};
+	};
+
+};
+
+&i2c5 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c5m0_xfer>;
+	clock-frequency = <400000>;
+
+	SEC_TS@48 {
+		compatible = "sec,sec_ts";
+		reg = <0x48>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&ts_pins>;
+		
+		interrupt-parent = <&gpio3>;
+		interrupts = <RK_PC0 IRQ_TYPE_LEVEL_LOW>;
+		reset-gpios = <&gpio3 RK_PC1 GPIO_ACTIVE_LOW>;
+		
+		sec,irq_gpio = <&gpio3 RK_PC0 GPIO_ACTIVE_LOW>;
+		sec,max_coords = <1080>, <2160>;
+		
+		tp-supply = <&vcc3v3_lcd_dsi0>; 
+		status = "okay";
+	};
+};
